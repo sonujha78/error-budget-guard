@@ -32,3 +32,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# error-budget-guard
+bin/
+out/
+*.tmp

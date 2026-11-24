@@ -309,14 +309,14 @@ func TestCollectJSONSample(t *testing.T) {
 		t.Fatal(err)
 	}
 	st := res.Stats
-	if st.Lines != 5 || st.Malformed != 1 || st.Requests != 4 || st.Events != 7 || st.NoLatency != 1 {
+	if st.Lines != 5 || st.Malformed != 1 || st.Duplicates != 1 || st.Requests != 3 || st.Events != 5 || st.NoLatency != 1 {
 		t.Errorf("stats = %+v", st)
 	}
-	if a := sums(res.Events, "checkout", event.SLIAvailability); a.Good != 3 || a.Valid != 4 {
-		t.Errorf("availability counts = %+v, want good=3 valid=4", a)
+	if a := sums(res.Events, "checkout", event.SLIAvailability); a.Good != 2 || a.Valid != 3 {
+		t.Errorf("availability counts = %+v, want good=2 valid=3", a)
 	}
-	if l := sums(res.Events, "checkout", event.SLILatency); l.Good != 2 || l.Valid != 3 {
-		t.Errorf("latency counts = %+v, want good=2 valid=3", l)
+	if l := sums(res.Events, "checkout", event.SLILatency); l.Good != 1 || l.Valid != 2 {
+		t.Errorf("latency counts = %+v, want good=1 valid=2", l)
 	}
 }
 
@@ -339,26 +339,6 @@ func TestCollectProbeSample(t *testing.T) {
 		if e.Source != "probe" {
 			t.Errorf("source = %q", e.Source)
 		}
-	}
-}
-
-func TestDuplicateLinesShareDedupKey(t *testing.T) {
-	reqs, _, err := ReadRequests(openSample(t, "nginx_sample.log"), FormatNginx, "checkout")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reqs[0].DedupKey != reqs[5].DedupKey {
-		t.Errorf("identical lines must share a key: %q vs %q", reqs[0].DedupKey, reqs[5].DedupKey)
-	}
-	if reqs[0].DedupKey == reqs[1].DedupKey {
-		t.Error("different lines must not share a key")
-	}
-	reqs, _, err = ReadRequests(openSample(t, "json_sample.log"), FormatJSON, "checkout")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reqs[0].DedupKey != reqs[3].DedupKey {
-		t.Errorf("same request_id must share a key: %q vs %q", reqs[0].DedupKey, reqs[3].DedupKey)
 	}
 }
 

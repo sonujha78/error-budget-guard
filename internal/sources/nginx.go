@@ -15,7 +15,7 @@ const nginxTimeLayout = "02/Jan/2006:15:04:05 -0700"
 // (the official docker image has it) and an optional " rt=$request_time".
 // Only time, request line, status and rt are captured. IP, user, referer and agent are skipped.
 var nginxRE = regexp.MustCompile(
-	`^\S+ \S+ \S+ \[([^\]]+)\] "([^"]*)" (\d{3}) \S+ "[^"]*" "[^"]*"(?: "[^"]*")?(?: rt=(\S+))?\s*$`)
+	`^\S+ \S+ \S+ \[([^\]]+)\] "([^"]*)" (\d{3}) \S+ "[^"]*" "[^"]*"(?: "[^"]*")?(?: rt=(\S+))?(?: rid=(\S+))?\s*$`)
 
 // ParseNginx parses one nginx access log line.
 func ParseNginx(line, service string) (Request, error) {
@@ -32,11 +32,14 @@ func ParseNginx(line, service string) (Request, error) {
 		return Request{}, errors.New("status out of range")
 	}
 	r := Request{
-		Time:     ts.UTC(),
-		Service:  service,
-		Path:     pathFromRequestLine(m[2]),
-		Status:   status,
-		DedupKey: lineKey(service, line),
+		Time:    ts.UTC(),
+		Service: service,
+		Path:    pathFromRequestLine(m[2]),
+		Status:  status,
+		LineKey: lineKey(service, line),
+	}
+	if m[5] != "" {
+		r.DedupKey = "id:" + service + ":" + m[5]
 	}
 	if m[4] != "" {
 		if rt, err := strconv.ParseFloat(m[4], 64); err == nil && !math.IsNaN(rt) && !math.IsInf(rt, 0) && rt >= 0 {

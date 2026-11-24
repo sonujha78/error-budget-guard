@@ -220,3 +220,27 @@ func TestShippedConfigLoads(t *testing.T) {
 		t.Fatalf("want at least 3 slos, got %d", len(f.SLOs))
 	}
 }
+
+func TestOneSLOPerServiceAndSLI(t *testing.T) {
+	y := `
+slos:
+  - name: a-strict
+    service: svc
+    sli: availability
+    objective: 99.9
+    window: 30d
+    good:
+      status_classes: [2xx]
+  - name: a-loose
+    service: svc
+    sli: availability
+    objective: 99
+    window: 30d
+    good:
+      status_classes: [2xx, 3xx]
+`
+	_, err := Parse([]byte(y))
+	if err == nil || !strings.Contains(err.Error(), "one slo per") {
+		t.Fatalf("want error mentioning \"one slo per\", got %v", err)
+	}
+}

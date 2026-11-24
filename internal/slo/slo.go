@@ -186,6 +186,7 @@ func (f *File) Validate() error {
 	}
 	var errs []error
 	seen := map[string]bool{}
+	pair := map[string]string{}
 	for i := range f.SLOs {
 		if err := f.SLOs[i].Validate(); err != nil {
 			errs = append(errs, err)
@@ -194,6 +195,11 @@ func (f *File) Validate() error {
 			errs = append(errs, fmt.Errorf("duplicate slo name %q", f.SLOs[i].Name))
 		}
 		seen[f.SLOs[i].Name] = true
+		key := f.SLOs[i].Service + "/" + f.SLOs[i].SLI
+		if other, ok := pair[key]; ok && other != f.SLOs[i].Name {
+			errs = append(errs, fmt.Errorf("service %q already has a %s slo (%q): events carry only service and sli, so use one slo per service and sli", f.SLOs[i].Service, f.SLOs[i].SLI, other))
+		}
+		pair[key] = f.SLOs[i].Name
 	}
 	return errors.Join(errs...)
 }

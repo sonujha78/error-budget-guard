@@ -1,0 +1,5 @@
+{"ts":"2026-11-23T10:00:01Z","service":"checkout","method":"GET","path":"/pay?token=tok_SECRET123","status":200,"latency_ms":120,"request_id":"r-1","client_ip":"203.0.113.7","user_id":"user-4242","cookie":"session=SESS999"}
+{"ts":1795428002,"service":"checkout","method":"GET","path":"/cart","status":503,"latency_ms":15,"request_id":"r-2","client_ip":"203.0.113.8"}
+{"ts":"2026-11-23T10:00:03Z","method":"GET","path":"/cart","status":200,"request_id":"r-3"}
+{"ts":"2026-11-23T10:00:04Z","service":"checkout","path":"/cart","status":"oops"}
+{"ts":"2026-11-23T10:00:01Z","service":"checkout","method":"GET","path":"/pay?token=tok_SECRET123","status":200,"latency_ms":120,"request_id":"r-1","client_ip":"203.0.113.7"}

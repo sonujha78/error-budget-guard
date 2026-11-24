@@ -1,0 +1,7 @@
+203.0.113.7 - alice [23/Nov/2026:10:00:01 +0000] "GET /pay?token=tok_SECRET123 HTTP/1.1" 200 512 "https://shop.example/cart?sid=SESS999" "Mozilla/5.0 (X11; Linux x86_64)" rt=0.120
+203.0.113.8 - - [23/Nov/2026:10:00:02 +0000] "GET /cart HTTP/1.1" 200 1024 "-" "curl/8.5.0" rt=0.040
+198.51.100.9 - - [23/Nov/2026:10:00:03 +0000] "POST /pay HTTP/1.1" 502 150 "-" "curl/8.5.0" rt=0.010
+203.0.113.7 - bob [23/Nov/2026:10:00:04 +0000] "GET /orders/98765/items?user_id=4242 HTTP/1.1" 404 0 "-" "curl/8.5.0" rt=0.005
+203.0.113.9 - - [23/Nov/2026:10:00:05 +0000] "GET /search?q=shoes HTTP/1.1" 200 2048 "-" "curl/8.5.0" rt=0.500
+this is not a log line from 203.0.113.7
+203.0.113.7 - alice [23/Nov/2026:10:00:01 +0000] "GET /pay?token=tok_SECRET123 HTTP/1.1" 200 512 "https://shop.example/cart?sid=SESS999" "Mozilla/5.0 (X11; Linux x86_64)" rt=0.120

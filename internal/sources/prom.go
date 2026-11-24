@@ -132,9 +132,6 @@ func parseSampleLine(line string) (string, map[string]string, float64, error) {
 	if err != nil {
 		return "", nil, 0, errors.New("bad sample value")
 	}
-	if math.IsNaN(v) || math.IsInf(v, 0) {
-		return "", nil, 0, errors.New("sample value is not finite")
-	}
 	if len(fields) == 2 {
 		if _, err := strconv.ParseInt(fields[1], 10, 64); err != nil {
 			return "", nil, 0, errors.New("bad sample timestamp")
@@ -224,6 +221,10 @@ func ParseScrapes(r io.Reader) ([]Scrape, Stats, error) {
 			}
 			s, ok := buildSample(name, labels, v)
 			if !ok {
+				break
+			}
+			if math.IsNaN(s.Value) || math.IsInf(s.Value, 0) {
+				bad("sample value is not finite")
 				break
 			}
 			if s.Value < 0 {

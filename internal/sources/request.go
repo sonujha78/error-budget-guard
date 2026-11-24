@@ -40,9 +40,12 @@ type Request struct {
 	Status     int    // 0 = no response at all
 	LatencyMS  float64
 	HasLatency bool
-	// DedupKey identifies the line so duplicates can be dropped later. It is a hash or a
-	// request id, never printed, never copied into an Event.
+	// DedupKey is an explicit request id from the log (empty when the log has none).
+	// Duplicates are dropped on it. Never printed, never copied into an Event.
 	DedupKey string
+	// LineKey is a hash of the raw line. It is used only with --dedupe-lines, because
+	// identical lines can be genuinely different requests (one second timestamps).
+	LineKey string
 }
 
 var (
@@ -174,6 +177,7 @@ type Stats struct {
 type Result struct {
 	Events   []event.Event
 	Requests []Request
+	Times    []time.Time // sample times for coverage (request or scrape times, may repeat)
 	Stats    Stats
 }
 
@@ -227,7 +231,13 @@ func ReadRequests(r io.Reader, format, defaultService string) ([]Request, Stats,
 }
 
 // Collect reads one input and returns events plus statistics.
+// It drops duplicates by explicit request id only. See CollectOpts and Options.
 func Collect(r io.Reader, format, defaultService string, slos []slo.SLO) (Result, error) {
+	return CollectOpts(r, format, defaultService, slos, Options{})
+}
+
+// CollectOpts is Collect with options.
+func CollectOpts(r io.Reader, format, defaultService string, slos []slo.SLO, opt Options) (Result, error) {
 	if format == FormatProm {
 		return collectProm(r, defaultService, slos)
 	}
@@ -235,7 +245,11 @@ func Collect(r io.Reader, format, defaultService string, slos []slo.SLO) (Result
 	if err != nil {
 		return Result{Stats: st}, err
 	}
+	reqs, dups := DedupRequests(reqs, opt.DedupeLines)
+	st.Duplicates = dups
+	st.OutOfOrder = CountOutOfOrder(reqs)
+	st.Requests = len(reqs)
 	evs, noLat := ToEvents(reqs, format, slos)
 	st.Events, st.NoLatency = len(evs), noLat
-	return Result{Events: evs, Requests: reqs, Stats: st}, nil
+	return Result{Events: evs, Requests: reqs, Times: requestTimes(reqs), Stats: st}, nil
 }

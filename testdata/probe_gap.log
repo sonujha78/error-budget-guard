@@ -1,0 +1,6 @@
+{"ts":"2026-11-23T10:00:00Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:00:10Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:00:20Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:00:30Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:01:20Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:01:30Z","service":"checkout","target":"/healthz","ok":true}

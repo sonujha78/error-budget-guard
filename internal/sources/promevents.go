@@ -246,5 +246,5 @@ func collectProm(r io.Reader, service string, slos []slo.SLO) (Result, error) {
 	st.Resets, st.NewSeries = rep.Resets, rep.NewSeries
 	st.Duplicates, st.OutOfOrder, st.Clamped = rep.Duplicates, rep.OutOfOrder, rep.Clamped
 	st.Warnings = rep.Warnings
-	return Result{Events: evs, Stats: st}, nil
+	return Result{Events: evs, Times: scrapeTimes(scrapes), Stats: st}, nil
 }

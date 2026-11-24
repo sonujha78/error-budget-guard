@@ -90,11 +90,11 @@ func ParseJSON(line, defaultService string) (Request, error) {
 		return Request{}, errors.New("service is required")
 	}
 	r := Request{
-		Time:     ts,
-		Service:  service,
-		Path:     NormalizePath(raw.Path),
-		Status:   status,
-		DedupKey: lineKey(service, line),
+		Time:    ts,
+		Service: service,
+		Path:    NormalizePath(raw.Path),
+		Status:  status,
+		LineKey: lineKey(service, line),
 	}
 	if raw.RequestID != "" {
 		r.DedupKey = "id:" + service + ":" + raw.RequestID
@@ -139,11 +139,11 @@ func ParseProbe(line, defaultService string) (Request, error) {
 		status = 200
 	}
 	r := Request{
-		Time:     ts,
-		Service:  service,
-		Path:     NormalizePath(raw.Target),
-		Status:   status,
-		DedupKey: lineKey(service, line),
+		Time:    ts,
+		Service: service,
+		Path:    NormalizePath(raw.Target),
+		Status:  status,
+		LineKey: lineKey(service, line),
 	}
 	if raw.LatencyMS != nil {
 		if *raw.LatencyMS < 0 {

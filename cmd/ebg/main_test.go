@@ -106,3 +106,63 @@ func TestParsePrometheusFile(t *testing.T) {
 		}
 	}
 }
+
+func TestParseSkewShiftsTimestamps(t *testing.T) {
+	line := `{"ts":"2026-11-23T10:00:03Z","service":"checkout","target":"/healthz","ok":true}` + "\n"
+	code, out, errOut := runWith(line, "parse", "--slo", "../../configs/slos.yaml",
+		"--format", "probe", "--skew", "probe=+3s", "-")
+	if code != 0 {
+		t.Fatalf("exit code %d, stderr: %s", code, errOut)
+	}
+	if !strings.Contains(out, `"timestamp":"2026-11-23T10:00:00Z"`) {
+		t.Errorf("timestamp was not shifted back by 3s: %s", out)
+	}
+}
+
+func TestParseSkewUnusedWarning(t *testing.T) {
+	line := `{"ts":"2026-11-23T10:00:03Z","service":"checkout","target":"/healthz","ok":true}` + "\n"
+	code, _, errOut := runWith(line, "parse", "--slo", "../../configs/slos.yaml",
+		"--format", "probe", "--skew", "nginx-log=+3s", "-")
+	if code != 0 || !strings.Contains(errOut, "matched no events") {
+		t.Errorf("code=%d stderr=%s", code, errOut)
+	}
+}
+
+func TestParseBadFlagValues(t *testing.T) {
+	for _, extra := range [][]string{
+		{"--skew", "probe=3"},
+		{"--skew", "probe=+10m"},
+		{"--interval", "-5s"},
+	} {
+		args := append([]string{"parse", "--slo", "../../configs/slos.yaml", "--format", "probe"}, extra...)
+		args = append(args, "../../testdata/probe_sample.log")
+		if code, _, _ := runWith("", args...); code != 3 {
+			t.Errorf("%v: exit code %d, want 3", extra, code)
+		}
+	}
+}
+
+func TestParseProbeCoverage(t *testing.T) {
+	code, _, errOut := runWith("", "parse", "--slo", "../../configs/slos.yaml",
+		"--format", "probe", "--interval", "10s", "../../testdata/probe_gap.log")
+	if code != 0 {
+		t.Fatalf("exit code %d, stderr: %s", code, errOut)
+	}
+	for _, want := range []string{"coverage: samples=6", "span=1m40s", "missing=40s", "ratio=0.600", "gaps=1"} {
+		if !strings.Contains(errOut, want) {
+			t.Errorf("stderr should contain %q, got: %s", want, errOut)
+		}
+	}
+}
+
+func TestParseDedupeLinesFlag(t *testing.T) {
+	base := []string{"parse", "--slo", "../../configs/slos.yaml", "--format", "nginx", "--service", "checkout"}
+	code, out, errOut := runWith("", append(base, "../../testdata/nginx_sample.log")...)
+	if code != 0 || len(strings.Split(strings.TrimSpace(out), "\n")) != 10 || !strings.Contains(errOut, "duplicates=0") {
+		t.Errorf("default: code=%d stderr=%s", code, errOut)
+	}
+	code, out, errOut = runWith("", append(base, "--dedupe-lines", "../../testdata/nginx_sample.log")...)
+	if code != 0 || len(strings.Split(strings.TrimSpace(out), "\n")) != 8 || !strings.Contains(errOut, "duplicates=1") {
+		t.Errorf("--dedupe-lines: code=%d stderr=%s", code, errOut)
+	}
+}

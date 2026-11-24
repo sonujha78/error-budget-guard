@@ -30,7 +30,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "ebg: Error Budget Guard")
 	fmt.Fprintln(w, "usage:")
 	fmt.Fprintln(w, "  ebg version")
-	fmt.Fprintln(w, "  ebg parse --format nginx|json|probe [--service NAME] [--slo FILE] <file|->")
+	fmt.Fprintln(w, "  ebg parse --format nginx|json|probe|prom [--service NAME] [--slo FILE] <file|->")
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -57,7 +57,7 @@ func runParse(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	sloPath := fs.String("slo", "configs/slos.yaml", "SLO definition file")
-	format := fs.String("format", "", "input format: nginx, json or probe (required)")
+	format := fs.String("format", "", "input format: nginx, json, probe or prom (required)")
 	service := fs.String("service", "", "service name (required for nginx, default for json and probe)")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -103,6 +103,13 @@ func runParse(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	st := res.Stats
 	fmt.Fprintf(stderr, "parsed: lines=%d blank=%d malformed=%d requests=%d events=%d no_latency=%d\n",
 		st.Lines, st.Blank, st.Malformed, st.Requests, st.Events, st.NoLatency)
+	if st.Scrapes > 0 {
+		fmt.Fprintf(stderr, "prometheus: scrapes=%d resets=%d new_series=%d duplicates=%d out_of_order=%d clamped=%d\n",
+			st.Scrapes, st.Resets, st.NewSeries, st.Duplicates, st.OutOfOrder, st.Clamped)
+	}
+	for _, w := range st.Warnings {
+		fmt.Fprintln(stderr, "  warning: "+w)
+	}
 	for _, m := range st.Errors {
 		fmt.Fprintln(stderr, "  "+m)
 	}

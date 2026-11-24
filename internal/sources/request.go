@@ -154,13 +154,20 @@ func ToEvents(reqs []Request, format string, slos []slo.SLO) ([]event.Event, int
 
 // Stats says how much of the input was used. Errors hold line numbers and reasons only.
 type Stats struct {
-	Lines     int      `json:"lines"`
-	Blank     int      `json:"blank"`
-	Malformed int      `json:"malformed"`
-	Requests  int      `json:"requests"`
-	Events    int      `json:"events"`
-	NoLatency int      `json:"no_latency"`
-	Errors    []string `json:"errors,omitempty"`
+	Lines      int      `json:"lines"`
+	Blank      int      `json:"blank"`
+	Malformed  int      `json:"malformed"`
+	Requests   int      `json:"requests"`
+	Events     int      `json:"events"`
+	NoLatency  int      `json:"no_latency"`
+	Scrapes    int      `json:"scrapes,omitempty"`
+	Resets     int      `json:"resets,omitempty"`
+	NewSeries  int      `json:"new_series,omitempty"`
+	Duplicates int      `json:"duplicates,omitempty"`
+	OutOfOrder int      `json:"out_of_order,omitempty"`
+	Clamped    int      `json:"clamped,omitempty"`
+	Warnings   []string `json:"warnings,omitempty"`
+	Errors     []string `json:"errors,omitempty"`
 }
 
 // Result is everything Collect produces.
@@ -221,6 +228,9 @@ func ReadRequests(r io.Reader, format, defaultService string) ([]Request, Stats,
 
 // Collect reads one input and returns events plus statistics.
 func Collect(r io.Reader, format, defaultService string, slos []slo.SLO) (Result, error) {
+	if format == FormatProm {
+		return collectProm(r, defaultService, slos)
+	}
 	reqs, st, err := ReadRequests(r, format, defaultService)
 	if err != nil {
 		return Result{Stats: st}, err

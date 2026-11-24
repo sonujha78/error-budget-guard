@@ -123,7 +123,7 @@ func TestParseSampleLine(t *testing.T) {
 		}
 	}
 	for _, line := range []string{
-		`m{a="b"}`, `m{a="b} 1`, `m{a="b"`, `m 1 NaN`, `m +Inf`, `m NaN`,
+		`m{a="b"}`, `m{a="b} 1`, `m{a="b"`, `m 1 NaN`,
 		`{a="b"} 1`, `m{a=b} 1`, `m abc`, `this is not a metric 203.0.113.7`,
 	} {
 		_, _, _, err := parseSampleLine(line)
@@ -396,5 +396,51 @@ func TestCollectPromSampleEndToEnd(t *testing.T) {
 func TestCollectPromNeedsService(t *testing.T) {
 	if _, err := Collect(strings.NewReader(""), FormatProm, "", shippedSLOs(t)); err == nil {
 		t.Error("prometheus input without a service name must be an error")
+	}
+}
+
+func TestParseSampleLineAcceptsNonFiniteValues(t *testing.T) {
+	for _, line := range []string{
+		`m NaN`, `m +Inf`, `m -Inf`,
+		`go_gc_duration_seconds{quantile="0.5"} NaN`,
+	} {
+		if _, _, _, err := parseSampleLine(line); err != nil {
+			t.Errorf("%q is valid exposition format, got error: %v", line, err)
+		}
+	}
+}
+
+func TestParseScrapesIgnoresNonFiniteOfUntrackedMetrics(t *testing.T) {
+	in := "# ebg-scrape ts=2026-11-24T10:00:00Z\n" +
+		`go_gc_duration_seconds{quantile="0.5"} NaN` + "\n" +
+		`some_summary{quantile="0.99"} NaN` + "\n" +
+		`some_gauge +Inf` + "\n" +
+		`http_requests_total{handler="/a",code="200"} 7` + "\n"
+	scrapes, st, err := ParseScrapes(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Malformed != 0 || len(st.Errors) != 0 {
+		t.Errorf("untracked NaN/Inf must not count as malformed: malformed=%d errors=%v", st.Malformed, st.Errors)
+	}
+	if len(scrapes) != 1 || len(scrapes[0].Samples) != 1 {
+		t.Fatalf("want 1 scrape with 1 kept sample, got %+v", scrapes)
+	}
+}
+
+func TestParseScrapesRejectsNonFiniteTrackedMetric(t *testing.T) {
+	in := "# ebg-scrape ts=2026-11-24T10:00:00Z\n" +
+		`http_requests_total{handler="/a",code="200"} NaN` + "\n" +
+		`http_requests_total{handler="/b",code="200"} +Inf` + "\n" +
+		`http_requests_total{handler="/c",code="200"} 5` + "\n"
+	scrapes, st, err := ParseScrapes(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Malformed != 2 || len(scrapes[0].Samples) != 1 {
+		t.Errorf("malformed=%d samples=%d, want 2 and 1", st.Malformed, len(scrapes[0].Samples))
+	}
+	if !anyContains(st.Errors, "not finite") {
+		t.Errorf("expected a 'not finite' error, got %v", st.Errors)
 	}
 }

@@ -1,0 +1,4 @@
+{"ts":"2026-11-23T10:00:00Z","service":"checkout","target":"/healthz?key=tok_SECRET123","ok":true,"status":200,"latency_ms":8}
+{"ts":"2026-11-23T10:00:10Z","service":"checkout","target":"/healthz","ok":false,"error":"connection refused"}
+{"ts":"2026-11-23T10:00:20Z","service":"checkout","target":"/healthz","ok":true}
+{"ts":"2026-11-23T10:00:30Z","service":"checkout","target":"/healthz","ok":false,"status":503,"latency_ms":900}

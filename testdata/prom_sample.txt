@@ -1,0 +1,36 @@
+# ebg-scrape ts=2026-11-24T10:00:00Z
+# HELP http_requests_total Total HTTP requests.
+# TYPE http_requests_total counter
+http_requests_total{handler="/pay",code="200",instance="203.0.113.7:9100",auth="tok_SECRET123"} 1000
+http_requests_total{handler="/pay",code="500",instance="203.0.113.7:9100"} 10
+http_requests_total{handler="/cart",code="200",instance="203.0.113.7:9100"} 500
+http_requests_total{handler="/cart",code="404",instance="203.0.113.7:9100"} 7
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="0.3"} 900
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="+Inf"} 1000
+http_request_duration_seconds_bucket{handler="/pay",code="500",le="0.3"} 10
+http_request_duration_seconds_count{handler="/pay",code="200"} 1000
+http_request_duration_seconds_count{handler="/pay",code="500"} 10
+go_goroutines 12
+# ebg-scrape ts=2026-11-24T10:00:15Z
+this is not a metric from 203.0.113.7
+http_requests_total{handler="/pay",code="200",instance="203.0.113.7:9100",auth="tok_SECRET123"} 1100
+http_requests_total{handler="/pay",code="500",instance="203.0.113.7:9100"} 15
+http_requests_total{handler="/cart",code="200",instance="203.0.113.7:9100"} 550
+http_requests_total{handler="/cart",code="404",instance="203.0.113.7:9100"} 9
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="0.3"} 980
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="+Inf"} 1100
+http_request_duration_seconds_bucket{handler="/pay",code="500",le="0.3"} 14
+http_request_duration_seconds_count{handler="/pay",code="200"} 1100
+http_request_duration_seconds_count{handler="/pay",code="500"} 15
+go_goroutines 12
+# ebg-scrape ts=2026-11-24T10:00:30Z
+http_requests_total{handler="/pay",code="200",instance="203.0.113.7:9100",auth="tok_SECRET123"} 40
+http_requests_total{handler="/pay",code="500",instance="203.0.113.7:9100"} 2
+http_requests_total{handler="/cart",code="200",instance="203.0.113.7:9100"} 20
+http_requests_total{handler="/cart",code="404",instance="203.0.113.7:9100"} 1
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="0.3"} 30
+http_request_duration_seconds_bucket{handler="/pay",code="200",le="+Inf"} 40
+http_request_duration_seconds_bucket{handler="/pay",code="500",le="0.3"} 1
+http_request_duration_seconds_count{handler="/pay",code="200"} 40
+http_request_duration_seconds_count{handler="/pay",code="500"} 2
+go_goroutines 3

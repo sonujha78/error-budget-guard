@@ -85,3 +85,24 @@ func TestVersion(t *testing.T) {
 		t.Errorf("code=%d out=%q", code, out)
 	}
 }
+
+func TestParsePrometheusFile(t *testing.T) {
+	code, out, errOut := runWith("", "parse", "--slo", "../../configs/slos.yaml",
+		"--format", "prom", "--service", "checkout", "../../testdata/prom_sample.txt")
+	if code != 0 {
+		t.Fatalf("exit code %d, stderr: %s", code, errOut)
+	}
+	if n := len(strings.Split(strings.TrimSpace(out), "\n")); n != 10 {
+		t.Errorf("got %d event lines, want 10", n)
+	}
+	for _, want := range []string{"scrapes=3", "resets=9", "malformed=1"} {
+		if !strings.Contains(errOut, want) {
+			t.Errorf("stderr should contain %q, got: %s", want, errOut)
+		}
+	}
+	for _, f := range forbidden {
+		if strings.Contains(out, f) || strings.Contains(errOut, f) {
+			t.Errorf("output leaks %q", f)
+		}
+	}
+}

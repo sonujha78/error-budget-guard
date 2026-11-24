@@ -1,0 +1,34 @@
+# Error Budget Guard: SLO definitions.
+# valid  = which requests are counted at all (4xx are client mistakes, so excluded).
+# good   = which counted requests met the objective.
+# Latency: a 5xx is valid but never good, even if it was fast.
+slos:
+  - name: checkout-availability
+    service: checkout
+    sli: availability
+    objective: 99.5
+    window: 30d
+    good:
+      status_classes: [2xx, 3xx]
+    valid:
+      exclude_status_classes: [4xx]
+
+  - name: checkout-latency
+    service: checkout
+    sli: latency
+    objective: 99
+    window: 30d
+    good:
+      latency_ms_lte: 300
+    valid:
+      exclude_status_classes: [4xx]
+
+  - name: search-availability
+    service: search
+    sli: availability
+    objective: 99.9
+    window: 30d
+    good:
+      status_classes: [2xx, 3xx]
+    valid:
+      exclude_status_classes: [4xx]

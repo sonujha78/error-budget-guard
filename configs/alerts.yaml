@@ -1,0 +1,22 @@
+# Error Budget Guard: multi-window, multi-burn-rate alert policy (Google SRE workbook defaults).
+# Windows are written for a 30 day SLO (reference_window). For an SLO with another window,
+# every window is scaled by (slo window / reference_window) and the burn thresholds stay the
+# same, so "14.4x for 1h = 2% of the budget" stays true at any scale.
+# An alert fires only when BOTH the long and the short window are at or above the burn threshold.
+reference_window: 30d
+rules:
+  - name: fast-burn
+    severity: page
+    burn: 14.4
+    long: 1h
+    short: 5m
+  - name: medium-burn
+    severity: page
+    burn: 6
+    long: 6h
+    short: 30m
+  - name: slow-burn
+    severity: ticket
+    burn: 1
+    long: 3d
+    short: 6h

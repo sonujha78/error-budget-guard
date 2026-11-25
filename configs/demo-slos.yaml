@@ -1,0 +1,12 @@
+# SLOs for the Docker Compose demo. The 12h window is 1/60 of the 30d reference window,
+# so the alert windows shrink to 1m/5s, 6m/30s and 72m/6m.
+slos:
+  - name: demo-availability
+    service: demo
+    sli: availability
+    objective: 99.9
+    window: 12h
+    good:
+      status_classes: [2xx, 3xx]
+    valid:
+      exclude_status_classes: [4xx]

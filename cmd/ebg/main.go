@@ -11,6 +11,7 @@ import (
 
 	"github.com/sonujha78/error-budget-guard/internal/clean"
 	"github.com/sonujha78/error-budget-guard/internal/event"
+	"github.com/sonujha78/error-budget-guard/internal/report"
 	"github.com/sonujha78/error-budget-guard/internal/slo"
 	"github.com/sonujha78/error-budget-guard/internal/sources"
 )
@@ -37,6 +38,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "            [--skew SRC=+3s,...] [--interval 10s] [--dedupe-lines] <file|->")
 	fmt.Fprintln(w, "  ebg alerts --events FILE|- [--slo FILE] [--alerts FILE] [--now RFC3339] [--step 10s]")
 	fmt.Fprintln(w, "  ebg gate   --events FILE|- [--policy FILE] [--override REASON --override-by NAME]   exit 0 allow, 1 warn, 2 block, 3 error")
+	fmt.Fprintln(w, "  ebg report --events FILE|- [--quality FILE,...] [--out FILE] [--override REASON --override-by NAME]   Markdown report")
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -57,6 +59,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runAlerts(args[1:], stdin, stdout, stderr)
 	case "gate":
 		return runGate(args[1:], stdin, stdout, stderr)
+	case "report":
+		return runReport(args[1:], stdin, stdout, stderr)
 	}
 	fmt.Fprintf(stderr, "ebg: unknown command %q\n", args[0])
 	usage(stderr)
@@ -72,6 +76,7 @@ func runParse(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	skewArg := fs.String("skew", "", "clock offsets, like nginx-log=+3s,probe=-2s (positive = that source's clock is ahead)")
 	interval := fs.Duration("interval", 0, "expected time between samples; turns on the coverage report")
 	dedupeLines := fs.Bool("dedupe-lines", false, "also drop identical lines that have no request id (can hide real traffic)")
+	statsOut := fs.String("stats-out", "", "write parse statistics (JSON) for `ebg report --quality`")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
@@ -139,25 +144,38 @@ func runParse(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	for _, name := range unused {
 		fmt.Fprintf(stderr, "  warning: skew for source %q matched no events\n", name)
 	}
+	var cov *report.Coverage
 	if *interval > 0 {
-		printCoverage(stderr, *format, res.Times, sk[sources.SourceName(*format)], *interval)
+		cov = printCoverage(stderr, *format, res.Times, sk[sources.SourceName(*format)], *interval)
 	}
 	for _, m := range st.Errors {
 		fmt.Fprintln(stderr, "  "+m)
+	}
+	if *statsOut != "" {
+		q := report.Quality{Source: sources.SourceName(*format), Stats: st, Coverage: cov}
+		data, err := json.MarshalIndent(q, "", "  ")
+		if err == nil {
+			err = os.WriteFile(*statsOut, append(data, '\n'), 0o644)
+		}
+		if err != nil {
+			fmt.Fprintln(stderr, "ebg parse:", err)
+			return exitError
+		}
 	}
 	return exitOK
 }
 
 // printCoverage measures gaps over the observed span only: from one interval before the
 // first sample to the last sample. Gaps before or after that cannot be known from the data.
-func printCoverage(w io.Writer, format string, times []time.Time, off, interval time.Duration) {
+// It prints the result and also returns it, so it can be saved with --stats-out.
+func printCoverage(w io.Writer, format string, times []time.Time, off, interval time.Duration) *report.Coverage {
 	label := "coverage"
 	if format != sources.FormatProbe && format != sources.FormatProm {
 		label = "silence"
 	}
 	if len(times) == 0 {
 		fmt.Fprintf(w, "%s: no samples, so it cannot be measured\n", label)
-		return
+		return nil
 	}
 	shifted := make([]time.Time, len(times))
 	first, last := times[0].Add(-off), times[0].Add(-off)
@@ -174,7 +192,7 @@ func printCoverage(w io.Writer, format string, times []time.Time, off, interval 
 	cov, err := clean.MeasureCoverage(shifted, first.Add(-interval), last, interval)
 	if err != nil {
 		fmt.Fprintf(w, "%s: %v\n", label, err)
-		return
+		return nil
 	}
 	fmt.Fprintf(w, "%s: samples=%d span=%s missing=%s ratio=%.3f gaps=%d\n",
 		label, cov.Samples, cov.Span, cov.Missing, cov.Ratio, len(cov.Gaps))
@@ -189,4 +207,6 @@ func printCoverage(w io.Writer, format string, times []time.Time, off, interval 
 		fmt.Fprintln(w, "  note: access logs cannot tell a quiet period from lost data")
 	}
 	fmt.Fprintln(w, "  note: only the observed span is measured; gaps before the first or after the last sample are unknown")
+	return &report.Coverage{Kind: label, Samples: cov.Samples, SpanSeconds: cov.Span.Seconds(),
+		MissingSeconds: cov.Missing.Seconds(), Ratio: cov.Ratio, Gaps: len(cov.Gaps)}
 }

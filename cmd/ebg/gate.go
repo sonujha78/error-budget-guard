@@ -14,6 +14,7 @@ import (
 	"github.com/sonujha78/error-budget-guard/internal/event"
 	"github.com/sonujha78/error-budget-guard/internal/forecast"
 	"github.com/sonujha78/error-budget-guard/internal/gate"
+	"github.com/sonujha78/error-budget-guard/internal/redact"
 	"github.com/sonujha78/error-budget-guard/internal/slo"
 )
 
@@ -115,7 +116,7 @@ func runGate(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	d := gate.Decide(pol, states)
 	if *override != "" {
-		if d, err = d.WithOverride(*override, *overrideBy); err != nil {
+		if d, err = d.WithOverride(redact.Scrub(*override), redact.Scrub(*overrideBy)); err != nil {
 			return fail(err)
 		}
 	}

@@ -1,0 +1,13 @@
+name: low-traffic
+description: |
+  Expected before recording: 90 requests (one every 2s), 10 of them fail from 100s to 120s.
+  Too little traffic to judge: no alert may fire, the report says insufficient data.
+  Gate WARN (exit 1).
+rps: 0.5
+duration: 180s
+paths:
+  - {path: /api/pay, weight: 5}
+  - {path: /api/cart, weight: 3}
+  - {path: /api/search, weight: 2}
+faults:
+  - {kind: error, from: 100s, to: 120s}

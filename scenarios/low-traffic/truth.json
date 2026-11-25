@@ -1,0 +1,32 @@
+{
+  "scenario": "low-traffic",
+  "start_unix": 1795606914.698,
+  "end_unix": 1795607092.702,
+  "rps": 0.5,
+  "planned": {
+    "total": 90,
+    "errors": 10,
+    "slow": 0,
+    "by_path": {
+      "/api/cart": 27,
+      "/api/pay": 45,
+      "/api/search": 18
+    },
+    "faults": [
+      {
+        "kind": "error",
+        "from_seconds": 100,
+        "to_seconds": 120,
+        "every": 1,
+        "matched": 10,
+        "applied": 10
+      }
+    ]
+  },
+  "sent": 90,
+  "observed_status": {
+    "200": 80,
+    "500": 10
+  },
+  "transport_errors": 0
+}

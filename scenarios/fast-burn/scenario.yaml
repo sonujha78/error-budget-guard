@@ -1,0 +1,13 @@
+name: fast-burn
+description: |
+  Expected before recording: 1800 requests, 100 errors, all on /api/pay from 100s to 120s.
+  Page alerts (fast and medium burn) start within 5s of 100s. The report names /api/pay.
+  Gate BLOCK (exit 2) because the budget is overspent.
+rps: 10
+duration: 180s
+paths:
+  - {path: /api/pay, weight: 5}
+  - {path: /api/cart, weight: 3}
+  - {path: /api/search, weight: 2}
+faults:
+  - {kind: error, path: /api/pay, from: 100s, to: 120s}

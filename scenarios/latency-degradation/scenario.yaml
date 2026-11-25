@@ -1,0 +1,12 @@
+name: latency-degradation
+description: |
+  Expected before recording: 1800 requests, 12 slow ones (800ms) on /api/search, last 30s.
+  Availability stays clean. Only demo-latency fires the slow-burn ticket. Gate WARN (exit 1).
+rps: 10
+duration: 180s
+paths:
+  - {path: /api/pay, weight: 5}
+  - {path: /api/cart, weight: 3}
+  - {path: /api/search, weight: 2}
+faults:
+  - {kind: slow, path: /api/search, from: 150s, to: 180s, every: 5, delay_ms: 800}

@@ -1,0 +1,12 @@
+name: slow-burn
+description: |
+  Expected before recording: 1800 requests, 12 errors (every 25th request, last 30s).
+  Only the slow-burn ticket fires, no page. Gate WARN (exit 1). Forecast about 15s (true value 15s).
+rps: 10
+duration: 180s
+paths:
+  - {path: /api/pay, weight: 5}
+  - {path: /api/cart, weight: 3}
+  - {path: /api/search, weight: 2}
+faults:
+  - {kind: error, from: 150s, to: 180s, every: 25}

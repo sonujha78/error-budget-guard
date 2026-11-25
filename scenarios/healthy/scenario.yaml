@@ -1,0 +1,12 @@
+name: healthy
+description: |
+  Expected before recording: 1800 requests, 3 injected errors (every 500th request).
+  No alert may fire. Gate ALLOW (exit 0).
+rps: 10
+duration: 180s
+paths:
+  - {path: /api/pay, weight: 5}
+  - {path: /api/cart, weight: 3}
+  - {path: /api/search, weight: 2}
+faults:
+  - {kind: error, from: 1s, to: 180s, every: 500}

@@ -1,0 +1,22 @@
+# SLOs of the Docker Compose demo. A 3 minute window lets real traffic fill a whole window.
+# Objective 99% => the error budget is 1% of the valid requests.
+slos:
+  - name: demo-availability
+    service: demo
+    sli: availability
+    objective: 99
+    window: 3m
+    good:
+      status_classes: [2xx, 3xx]
+    valid:
+      exclude_status_classes: [4xx]
+
+  - name: demo-latency
+    service: demo
+    sli: latency
+    objective: 99
+    window: 3m
+    good:
+      latency_ms_lte: 300
+    valid:
+      exclude_status_classes: [4xx]

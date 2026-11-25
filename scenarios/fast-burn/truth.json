@@ -1,0 +1,33 @@
+{
+  "scenario": "fast-burn",
+  "start_unix": 1795606529.752,
+  "end_unix": 1795606709.655,
+  "rps": 10,
+  "planned": {
+    "total": 1800,
+    "errors": 100,
+    "slow": 0,
+    "by_path": {
+      "/api/cart": 540,
+      "/api/pay": 900,
+      "/api/search": 360
+    },
+    "faults": [
+      {
+        "kind": "error",
+        "path": "/api/pay",
+        "from_seconds": 100,
+        "to_seconds": 120,
+        "every": 1,
+        "matched": 100,
+        "applied": 100
+      }
+    ]
+  },
+  "sent": 1800,
+  "observed_status": {
+    "200": 1700,
+    "500": 100
+  },
+  "transport_errors": 0
+}

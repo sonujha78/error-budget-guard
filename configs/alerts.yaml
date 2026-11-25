@@ -4,6 +4,13 @@
 # same, so "14.4x for 1h = 2% of the budget" stays true at any scale.
 # An alert fires only when BOTH the long and the short window are at or above the burn threshold.
 reference_window: 30d
+# Too little data is "insufficient", never a false alert and never false comfort.
+# min_coverage: the history must cover this share of a rule's own long window.
+# min_bad_at_threshold: the long window needs enough traffic that, at the threshold burn,
+# at least this many events would be bad (so one stray failure cannot page).
+# These defaults come from design, they are not tuned on a dataset.
+min_coverage: 0.8
+min_bad_at_threshold: 5
 rules:
   - name: fast-burn
     severity: page

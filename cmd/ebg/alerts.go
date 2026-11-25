@@ -83,11 +83,15 @@ func runAlerts(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	now = now.UTC()
 
 	fmt.Fprintf(stdout, "alerts at %s (%d events)\n", ts(now), len(evs))
-	page, ticket := 0, 0
+	page, ticket, unsure := 0, 0, 0
 	for _, s := range f.SLOs {
 		fmt.Fprintf(stdout, "slo %s (objective %g%%, window %s, scale=%.6g)\n", s.Name, s.Objective, s.Window.Std(), pol.Scale(s.Window.Std()))
 		for _, a := range alert.Evaluate(pol, s, evs, now) {
 			state := "ok"
+			if a.Insufficient {
+				state = "insufficient"
+				unsure++
+			}
 			if a.Firing {
 				state = "FIRING"
 				if a.Severity == alert.SeverityPage {
@@ -96,10 +100,10 @@ func runAlerts(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 					ticket++
 				}
 			}
-			fmt.Fprintf(stdout, "  %-6s %-6s %-12s %s\n", state, a.Severity, a.Rule, a.Explain())
+			fmt.Fprintf(stdout, "  %-12s %-6s %-12s %s\n", state, a.Severity, a.Rule, a.Explain())
 		}
 	}
-	fmt.Fprintf(stdout, "firing: %d page, %d ticket\n", page, ticket)
+	fmt.Fprintf(stdout, "firing: %d page, %d ticket, %d insufficient\n", page, ticket, unsure)
 
 	if *step > 0 && len(evs) > 0 {
 		from := evs[0].Timestamp

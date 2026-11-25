@@ -11,6 +11,7 @@
 package budget
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/sonujha78/error-budget-guard/internal/event"
@@ -96,18 +97,67 @@ type Status struct {
 	BudgetRemaining float64
 	UsedFraction    float64 // 0.5 = 50% used, 2.0 = 200% used
 	Overspent       bool
+
+	// HistoryCoverage is how much of the SLO window the history covers: (now - oldest event) / window, at most 1.
+	HistoryCoverage float64
+	// Insufficient means the numbers above must not be trusted: no data, a budget smaller than one
+	// event, or too little history. Reason says which.
+	Insufficient bool
+	Reason       string
+}
+
+// History is how long ago the oldest event of a service and SLI happened. Events after now are ignored.
+func History(evs []event.Event, service, sli string, now time.Time) (time.Duration, bool) {
+	var first time.Time
+	found := false
+	for _, e := range evs {
+		if e.Service != service || e.SLI != sli || e.Timestamp.After(now) {
+			continue
+		}
+		if !found || e.Timestamp.Before(first) {
+			first, found = e.Timestamp, true
+		}
+	}
+	if !found {
+		return 0, false
+	}
+	return now.Sub(first), true
+}
+
+// CoverageOf is history / window, limited to 0..1.
+func CoverageOf(history, window time.Duration) float64 {
+	if window <= 0 || history <= 0 {
+		return 0
+	}
+	r := float64(history) / float64(window)
+	if r > 1 {
+		return 1
+	}
+	return r
 }
 
 // Compute calculates the SLI and error budget over the SLO's own window ending at now.
+// It asks for no minimum history; see ComputeWith.
 func Compute(s slo.SLO, evs []event.Event, now time.Time) Status {
+	return ComputeWith(s, evs, now, 0)
+}
+
+// ComputeWith is Compute that also marks the status Insufficient when the history covers less
+// than minCoverage of the SLO window (0 turns that check off).
+func ComputeWith(s slo.SLO, evs []event.Event, now time.Time, minCoverage float64) Status {
 	w := s.Window.Std()
 	c := Sum(evs, s.Service, s.SLI, now.Add(-w), now)
 	st := Status{
 		SLO: s.Name, Service: s.Service, SLIType: s.SLI,
 		Objective: s.Objective, Window: w, Counts: c,
 	}
+	if hist, ok := History(evs, s.Service, s.SLI, now); ok {
+		st.HistoryCoverage = CoverageOf(hist, w)
+	}
 	sli, ok := SLI(c)
 	if !ok {
+		st.Insufficient = true
+		st.Reason = "no valid events in the window"
 		return st
 	}
 	st.HasData = true
@@ -120,6 +170,14 @@ func Compute(s slo.SLO, evs []event.Event, now time.Time) Status {
 	st.Overspent = st.BudgetUsed > st.BudgetTotal
 	if rem := st.BudgetTotal - st.BudgetUsed; rem > 0 {
 		st.BudgetRemaining = rem
+	}
+	switch {
+	case st.BudgetTotal < 1:
+		st.Insufficient = true
+		st.Reason = fmt.Sprintf("only %d valid events at %g%%: the whole budget is less than one event, so one failure would overspend it", c.Valid, s.Objective)
+	case minCoverage > 0 && st.HistoryCoverage+Tolerance < minCoverage:
+		st.Insufficient = true
+		st.Reason = fmt.Sprintf("history covers %.1f%% of the %s window, need at least %.0f%%", st.HistoryCoverage*100, w, minCoverage*100)
 	}
 	return st
 }

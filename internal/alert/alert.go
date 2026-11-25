@@ -30,6 +30,12 @@ const (
 
 const maxSteps = 1_000_000
 
+// Defaults for the "is there enough data" checks. They come from design, not from tuning on a dataset.
+const (
+	DefaultMinCoverage       = 0.8 // history must cover 80% of a rule's long window
+	DefaultMinBadAtThreshold = 5   // the long window needs enough traffic for >= 5 bad events at the threshold burn
+)
+
 // Rule is one burn-rate rule. Windows are written for the policy's reference window.
 type Rule struct {
 	Name     string       `yaml:"name"`
@@ -37,12 +43,18 @@ type Rule struct {
 	Burn     float64      `yaml:"burn"`
 	Long     slo.Duration `yaml:"long"`
 	Short    slo.Duration `yaml:"short"`
+	// MinValid overrides the minimum number of valid events in the long window (0 = computed).
+	MinValid int64 `yaml:"min_valid"`
 }
 
 // Policy is the whole alert policy file.
 type Policy struct {
 	ReferenceWindow slo.Duration `yaml:"reference_window"`
 	Rules           []Rule       `yaml:"rules"`
+	// MinCoverage is the share of a rule's long window the history must cover (default 0.8).
+	MinCoverage float64 `yaml:"min_coverage"`
+	// MinBadAtThreshold sizes the minimum traffic of a long window (default 5).
+	MinBadAtThreshold float64 `yaml:"min_bad_at_threshold"`
 }
 
 // Validate returns every problem of the policy at once.
@@ -53,6 +65,12 @@ func (p *Policy) Validate() error {
 	}
 	if len(p.Rules) == 0 {
 		errs = append(errs, errors.New("no rules defined"))
+	}
+	if p.MinCoverage <= 0 || p.MinCoverage > 1 {
+		errs = append(errs, errors.New("min_coverage must be above 0 and at most 1"))
+	}
+	if p.MinBadAtThreshold <= 0 {
+		errs = append(errs, errors.New("min_bad_at_threshold must be positive"))
 	}
 	seen := map[string]bool{}
 	for i, r := range p.Rules {
@@ -83,6 +101,9 @@ func (p *Policy) Validate() error {
 		if r.Long > p.ReferenceWindow {
 			add("long window must not exceed the reference window")
 		}
+		if r.MinValid < 0 {
+			add("min_valid must not be negative")
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -97,6 +118,12 @@ func Parse(data []byte) (*Policy, error) {
 			return nil, errors.New("alert policy file is empty")
 		}
 		return nil, fmt.Errorf("parse alert policy: %w", err)
+	}
+	if p.MinCoverage == 0 {
+		p.MinCoverage = DefaultMinCoverage
+	}
+	if p.MinBadAtThreshold == 0 {
+		p.MinBadAtThreshold = DefaultMinBadAtThreshold
 	}
 	if err := p.Validate(); err != nil {
 		return nil, err
@@ -140,9 +167,15 @@ type Alert struct {
 	LongKnown, ShortKnown bool // false when the window had no valid events
 	LongValid, ShortValid int64
 
+	// Insufficient means there is too little data to judge this rule. It never fires then.
+	Insufficient  bool
+	Reason        string  // why it is insufficient
+	Coverage      float64 // how much of the long window the history covers (0..1)
+	RequiredValid int64   // minimum valid events the long window needs
+
 	Firing bool
 	// BudgetConsumed is the fraction of the whole SLO budget burned during the long window
-	// at the long window's burn rate (burn x long / SLO window).
+	// at the long window's burn rate (burn x long / SLO window). Zero when insufficient.
 	BudgetConsumed float64
 }
 
@@ -153,8 +186,11 @@ func burnText(b float64, known bool) string {
 	return fmt.Sprintf("%.1fx", b)
 }
 
-// Explain says which windows fired and how much budget was used.
+// Explain says which windows fired and how much budget was used, or why it cannot judge.
 func (a Alert) Explain() string {
+	if a.Insufficient {
+		return "insufficient data: " + a.Reason
+	}
 	if a.Firing {
 		return fmt.Sprintf("burn %.1fx over %s and %.1fx over %s, both >= %.1fx; %.2f%% of the error budget used in the last %s",
 			a.LongBurn, a.Long, a.ShortBurn, a.Short, a.Threshold, a.BudgetConsumed*100, a.Long)
@@ -163,10 +199,25 @@ func (a Alert) Explain() string {
 		burnText(a.LongBurn, a.LongKnown), a.Long, burnText(a.ShortBurn, a.ShortKnown), a.Short, a.Threshold)
 }
 
+// RequiredValid is the minimum number of valid events the long window of a rule needs: enough
+// traffic that, at the threshold burn, at least MinBadAtThreshold events would be bad.
+func (p *Policy) RequiredValid(r Rule, budgetRatio float64) int64 {
+	if r.MinValid > 0 {
+		return r.MinValid
+	}
+	if budgetRatio <= 0 || r.Burn <= 0 {
+		return 0
+	}
+	return int64(math.Ceil(p.MinBadAtThreshold/(budgetRatio*r.Burn) - 1e-9))
+}
+
 // Evaluate checks every rule of the policy for one SLO at time now, in policy order.
+// A rule with too little data (no data, too little history, too little traffic) is marked
+// Insufficient and does not fire.
 func Evaluate(p *Policy, s slo.SLO, evs []event.Event, now time.Time) []Alert {
 	f := p.Scale(s.Window.Std())
 	ratio := s.ErrorBudgetRatio()
+	hist, hasHist := budget.History(evs, s.Service, s.SLI, now)
 	out := make([]Alert, 0, len(p.Rules))
 	for _, r := range p.Rules {
 		long, short := ScaleDuration(r.Long.Std(), f), ScaleDuration(r.Short.Std(), f)
@@ -174,14 +225,28 @@ func Evaluate(p *Policy, s slo.SLO, evs []event.Event, now time.Time) []Alert {
 		sc := budget.Sum(evs, s.Service, s.SLI, now.Add(-short), now)
 		lb, lok := budget.BurnRate(lc, ratio)
 		sb, sok := budget.BurnRate(sc, ratio)
+		cov := 0.0
+		if hasHist {
+			cov = budget.CoverageOf(hist, long)
+		}
+		req := p.RequiredValid(r, ratio)
 		a := Alert{
 			SLO: s.Name, Service: s.Service, Rule: r.Name, Severity: r.Severity, Threshold: r.Burn,
 			Long: long, Short: short,
 			LongBurn: lb, ShortBurn: sb, LongKnown: lok, ShortKnown: sok,
 			LongValid: lc.Valid, ShortValid: sc.Valid,
+			Coverage: cov, RequiredValid: req,
 		}
-		a.Firing = lok && sok && lb >= r.Burn-budget.Tolerance && sb >= r.Burn-budget.Tolerance
-		if lok {
+		switch {
+		case !lok:
+			a.Insufficient, a.Reason = true, fmt.Sprintf("no data in the last %s", long)
+		case cov+budget.Tolerance < p.MinCoverage:
+			a.Insufficient, a.Reason = true, fmt.Sprintf("history covers %.1f%% of the %s window, need at least %.0f%%", cov*100, long, p.MinCoverage*100)
+		case lc.Valid < req:
+			a.Insufficient, a.Reason = true, fmt.Sprintf("only %d valid events in the last %s, need at least %d", lc.Valid, long, req)
+		}
+		if !a.Insufficient {
+			a.Firing = sok && lb >= r.Burn-budget.Tolerance && sb >= r.Burn-budget.Tolerance
 			a.BudgetConsumed = budget.ConsumedByBurn(lb, long, s.Window.Std())
 		}
 		out = append(out, a)

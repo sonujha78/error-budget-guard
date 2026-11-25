@@ -131,3 +131,23 @@ func TestAlertsToolErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestAlertsCommandInsufficientHistory(t *testing.T) {
+	slos := writeFile(t, "slos.yaml", demoSLO)
+	code, out, errOut := runWith(events(110, 80), "alerts", "--slo", slos, "--alerts", "../../configs/alerts.yaml", "--events", "-")
+	if code != 0 {
+		t.Fatalf("exit code %d, stderr: %s", code, errOut)
+	}
+	if fast := lineWith(out, "fast-burn"); !strings.HasPrefix(fast, "  FIRING") {
+		t.Errorf("fast-burn has enough data: %q", fast)
+	}
+	for _, rule := range []string{"medium-burn", "slow-burn"} {
+		l := lineWith(out, rule)
+		if !strings.HasPrefix(l, "  insufficient") || !strings.Contains(l, "history") {
+			t.Errorf("%s line = %q, want insufficient because of history", rule, l)
+		}
+	}
+	if !strings.Contains(out, "firing: 1 page, 0 ticket, 2 insufficient") {
+		t.Errorf("summary line is wrong:\n%s", out)
+	}
+}

@@ -35,6 +35,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  ebg version")
 	fmt.Fprintln(w, "  ebg parse --format nginx|json|probe|prom [--service NAME] [--slo FILE]")
 	fmt.Fprintln(w, "            [--skew SRC=+3s,...] [--interval 10s] [--dedupe-lines] <file|->")
+	fmt.Fprintln(w, "  ebg alerts --events FILE|- [--slo FILE] [--alerts FILE] [--now RFC3339] [--step 10s]")
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -51,6 +52,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return exitOK
 	case "parse":
 		return runParse(args[1:], stdin, stdout, stderr)
+	case "alerts":
+		return runAlerts(args[1:], stdin, stdout, stderr)
 	}
 	fmt.Fprintf(stderr, "ebg: unknown command %q\n", args[0])
 	usage(stderr)

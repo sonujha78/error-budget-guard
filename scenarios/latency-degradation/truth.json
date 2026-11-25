@@ -1,0 +1,33 @@
+{
+  "scenario": "latency-degradation",
+  "start_unix": 1795606721.58,
+  "end_unix": 1795606902.283,
+  "rps": 10,
+  "planned": {
+    "total": 1800,
+    "errors": 0,
+    "slow": 12,
+    "by_path": {
+      "/api/cart": 540,
+      "/api/pay": 900,
+      "/api/search": 360
+    },
+    "faults": [
+      {
+        "kind": "slow",
+        "path": "/api/search",
+        "from_seconds": 150,
+        "to_seconds": 180,
+        "every": 5,
+        "delay_ms": 800,
+        "matched": 60,
+        "applied": 12
+      }
+    ]
+  },
+  "sent": 1800,
+  "observed_status": {
+    "200": 1800
+  },
+  "transport_errors": 0
+}

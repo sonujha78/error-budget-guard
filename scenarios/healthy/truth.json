@@ -1,0 +1,32 @@
+{
+  "scenario": "healthy",
+  "start_unix": 1795606145.115,
+  "end_unix": 1795606325.017,
+  "rps": 10,
+  "planned": {
+    "total": 1800,
+    "errors": 3,
+    "slow": 0,
+    "by_path": {
+      "/api/cart": 540,
+      "/api/pay": 900,
+      "/api/search": 360
+    },
+    "faults": [
+      {
+        "kind": "error",
+        "from_seconds": 1,
+        "to_seconds": 180,
+        "every": 500,
+        "matched": 1790,
+        "applied": 3
+      }
+    ]
+  },
+  "sent": 1800,
+  "observed_status": {
+    "200": 1797,
+    "500": 3
+  },
+  "transport_errors": 0
+}

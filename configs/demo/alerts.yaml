@@ -1,0 +1,27 @@
+# Alert policy of the demo, written directly in seconds for the 3 minute SLO window (scale = 1).
+# The 30 day proportions of the Google SRE defaults (2% / 5% / 10% of the budget) would need
+# windows of 1.5 to 18 seconds here, too short to hold enough requests, so the demo uses its own.
+# Burn x long / SLO window = budget used if the burn lasts a whole long window:
+#   fast-burn   14.4 x  6s / 180s = 48%
+#   medium-burn  6   x 18s / 180s = 60%
+#   slow-burn    2   x 36s / 180s = 40%
+# At 10 requests a second the long windows hold 60, 180 and 360 requests.
+reference_window: 3m
+min_coverage: 0.8
+min_bad_at_threshold: 5
+rules:
+  - name: fast-burn
+    severity: page
+    burn: 14.4
+    long: 6s
+    short: 1s
+  - name: medium-burn
+    severity: page
+    burn: 6
+    long: 18s
+    short: 3s
+  - name: slow-burn
+    severity: ticket
+    burn: 2
+    long: 36s
+    short: 6s

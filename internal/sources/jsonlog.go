@@ -8,12 +8,13 @@ import (
 )
 
 type rawJSON struct {
-	TS        any      `json:"ts"`
-	Service   string   `json:"service"`
-	Path      string   `json:"path"`
-	Status    *float64 `json:"status"`
-	LatencyMS *float64 `json:"latency_ms"`
-	RequestID string   `json:"request_id"`
+	TS         any      `json:"ts"`
+	Service    string   `json:"service"`
+	Path       string   `json:"path"`
+	Status     *float64 `json:"status"`
+	LatencyMS  *float64 `json:"latency_ms"`
+	LatencySec *float64 `json:"latency_s"`
+	RequestID  string   `json:"request_id"`
 }
 
 type rawProbe struct {
@@ -104,6 +105,12 @@ func ParseJSON(line, defaultService string) (Request, error) {
 			return Request{}, errors.New("latency_ms must not be negative")
 		}
 		r.LatencyMS, r.HasLatency = *raw.LatencyMS, true
+	}
+	if raw.LatencyMS == nil && raw.LatencySec != nil {
+		if *raw.LatencySec < 0 {
+			return Request{}, errors.New("latency_s must not be negative")
+		}
+		r.LatencyMS, r.HasLatency = math.Round(*raw.LatencySec*1e6)/1e3, true
 	}
 	return r, nil
 }

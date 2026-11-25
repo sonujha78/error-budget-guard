@@ -1,0 +1,14 @@
+# Error Budget Guard: error budget policy used by `ebg gate`.
+# Every field except the last two is required, so a missing field can never turn into "allow".
+#
+# block when less than this share of the error budget remains
+block_below_remaining: 0.10
+# warn when less than this share remains
+warn_below_remaining: 0.25
+# what to do when there is too little data to judge: warn or block (never allow)
+on_insufficient: warn
+# the budget numbers need history covering this share of the SLO window (default 0.8)
+min_history_coverage: 0.8
+# warn when the forecast says the budget runs out within this share of the SLO window (0 = off)
+warn_if_exhausted_within: 0.25
+# A page-level alert that is firing always blocks. A ticket-level alert always warns.

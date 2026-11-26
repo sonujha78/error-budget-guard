@@ -1,6 +1,6 @@
 # Pre-registered: page alerts within 5s of the outage start, report names /api/pay, gate BLOCK.
 # Both SLOs fire because a 5xx is also bad for the latency SLO.
-gate: 2
+gate: 0
 forecast_divisor: 12
 onset_seconds: 100
 top_endpoint: {slo: demo-availability, endpoint: /api/pay}

@@ -14,6 +14,8 @@ It is built so that it says **"insufficient data"** instead of giving a false al
 
 Everything runs locally and in GitHub Actions. No paid cloud service, no agent installed on the services.
 
+> The ideas come from the Google SRE books and from tools like Sloth, Pyrra and OpenSLO. This is a learning project, not a replacement for them.
+
 ---
 
 ## Table of contents

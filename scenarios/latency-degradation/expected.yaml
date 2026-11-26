@@ -1,0 +1,8 @@
+# Availability stays clean, only the latency SLO fires. 12 slow requests in the last 30s,
+# one every 2.5s, 6 budget events left => 15s left.
+gate: 1
+forecast_divisor: 6
+onset_seconds: 150
+episodes:
+  - {slo: demo-latency, rule: slow-burn, max_delay_s: 40}
+forecast: {slo: demo-latency, true_seconds: 15, tolerance: 0.2}

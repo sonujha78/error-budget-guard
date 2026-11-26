@@ -1,0 +1,13 @@
+# Pre-registered: page alerts within 5s of the outage start, report names /api/pay, gate BLOCK.
+# Both SLOs fire because a 5xx is also bad for the latency SLO.
+gate: 2
+forecast_divisor: 12
+onset_seconds: 100
+top_endpoint: {slo: demo-availability, endpoint: /api/pay}
+episodes:
+  - {slo: demo-availability, rule: fast-burn, max_delay_s: 5}
+  - {slo: demo-availability, rule: medium-burn, max_delay_s: 5}
+  - {slo: demo-availability, rule: slow-burn, max_delay_s: 5}
+  - {slo: demo-latency, rule: fast-burn, max_delay_s: 5}
+  - {slo: demo-latency, rule: medium-burn, max_delay_s: 5}
+  - {slo: demo-latency, rule: slow-burn, max_delay_s: 5}

@@ -20,3 +20,10 @@ run: build
 
 clean:
 > rm -rf bin
+
+.PHONY: verify reports
+verify: build
+> ./$(BIN) verify scenarios/*
+
+reports: build
+> ./scripts/make-reports.sh

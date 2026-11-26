@@ -1,0 +1,32 @@
+How reliable were we this month? How much unreliability can we still afford? Should we deploy right now?
+
+Most teams say "reliability matters", but few can answer those three questions with a number. So I built Error Budget Guard.
+
+It is a Go tool that:
+- reads nginx/JSON access logs, Prometheus metrics and health probes, with no agent on the service
+- turns them into one clean stream of good/valid events
+- calculates the SLI, the error budget and burn rates
+- raises multi-window, multi-burn-rate alerts
+- forecasts when the budget runs out
+- works as a CI release gate: exit 0 allow, 1 warn, 2 block, with reasons you can check
+- writes a Markdown report, and removes tokens, IPs and user ids from everything it prints
+
+What I am proudest of is how it was tested. Five scenarios were recorded with Docker Compose and a deterministic load generator, and the expected result of each was written down BEFORE recording:
+- healthy: allow, zero alerts
+- slow burn: warn, forecast error 0.0%
+- fast burn: block, page alert after 1.5 s, report names /api/pay
+- latency degradation: warn, only the latency SLO fires
+- low traffic: "insufficient data", no false alert
+
+Real traffic found bugs my unit tests missed:
+- a real Prometheus container showed 61 false "malformed" lines, because NaN is a valid value
+- deduplicating identical log lines turned 20 real failures into 1, so it is now opt-in
+- my first alert version said "1825% of the budget used" on 110 seconds of data, which led to explicit "insufficient data" handling
+
+I also broke the CI on purpose to prove that it fails and blocks the merge.
+
+Honest limits: 5 recordings, thresholds chosen by design and not tuned, a short slow-burn scenario, no live collector, no stretch goals.
+
+Code, scenarios, recorded data and a step-by-step build log: https://github.com/sonujha78/error-budget-guard
+
+#SRE #DevOps #SLO #Golang #Observability #GitHubActions #Prometheus

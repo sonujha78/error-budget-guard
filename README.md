@@ -14,8 +14,6 @@ It is built so that it says **"insufficient data"** instead of giving a false al
 
 Everything runs locally and in GitHub Actions. No paid cloud service, no agent installed on the services.
 
-> This is portfolio project 4 of a DevOps/SRE interview series. The task statement was "Project 4: Error Budget Guard". The ideas come from the Google SRE books and from tools like Sloth, Pyrra and OpenSLO. This is a learning project, not a replacement for them.
-
 ---
 
 ## Table of contents

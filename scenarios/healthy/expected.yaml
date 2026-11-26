@@ -1,0 +1,4 @@
+# Written from the table made before recording. No alert may fire.
+gate: 0
+forecast_divisor: 12
+episodes: []

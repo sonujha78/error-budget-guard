@@ -1,0 +1,4 @@
+# Too little traffic to judge: nothing may fire, everything says insufficient data.
+gate: 1
+forecast_divisor: 12
+insufficient: true

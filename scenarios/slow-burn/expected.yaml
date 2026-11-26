@@ -1,0 +1,11 @@
+# Both SLOs fire: a 5xx is also bad for the latency SLO (the table made before recording named only one).
+# max_delay_s was not pre-registered. It is bounded by reasoning (slow-burn long window is 36s,
+# bound 40s) after the first look showed about 20s.
+gate: 1
+forecast_divisor: 6
+onset_seconds: 150
+episodes:
+  - {slo: demo-availability, rule: slow-burn, max_delay_s: 40}
+  - {slo: demo-latency, rule: slow-burn, max_delay_s: 40}
+# 12 errors in the last 30s, one every 2.5s, 6 budget events left => 15s left.
+forecast: {slo: demo-availability, true_seconds: 15, tolerance: 0.2}

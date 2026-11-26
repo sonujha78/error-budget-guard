@@ -39,6 +39,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  ebg alerts --events FILE|- [--slo FILE] [--alerts FILE] [--now RFC3339] [--step 10s]")
 	fmt.Fprintln(w, "  ebg gate   --events FILE|- [--policy FILE] [--override REASON --override-by NAME]   exit 0 allow, 1 warn, 2 block, 3 error")
 	fmt.Fprintln(w, "  ebg report --events FILE|- [--quality FILE,...] [--out FILE] [--override REASON --override-by NAME]   Markdown report")
+	fmt.Fprintln(w, "  ebg verify DIR...   check recorded scenarios against expected.yaml   exit 0 pass, 4 fail, 3 error")
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -61,6 +62,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runGate(args[1:], stdin, stdout, stderr)
 	case "report":
 		return runReport(args[1:], stdin, stdout, stderr)
+	case "verify":
+		return runVerify(args[1:], stdout, stderr)
 	}
 	fmt.Fprintf(stderr, "ebg: unknown command %q\n", args[0])
 	usage(stderr)

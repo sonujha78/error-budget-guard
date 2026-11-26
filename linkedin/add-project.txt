@@ -1,0 +1,22 @@
+PROJECT NAME
+Error Budget Guard: SLO error budgets, burn-rate alerts and a CI release gate
+
+DESCRIPTION (paste)
+A Go tool that turns nginx/JSON access logs, Prometheus metrics and health probes into one clean stream of good/valid events, then calculates the SLI, the error budget and burn rates, raises multi-window multi-burn-rate alerts, forecasts when the budget runs out, and acts as a CI release gate (exit 0 allow, 1 warn, 2 block) with reasons a person can check. It handles counter resets, gaps, duplicates, out-of-order lines and clock skew, says "insufficient data" instead of giving false alerts or false comfort, and removes tokens, IPs and user ids from everything it stores or prints.
+Tested on five Docker Compose scenarios (healthy, slow burn, fast burn, latency degradation, low traffic) with a deterministic load generator and expected results written before recording. A GitHub Actions workflow verifies alerts and gate decisions on the recorded data, and was deliberately broken once to prove it fails and blocks the merge. Reports are reproducible: the same data always gives the same report.
+
+PROJECT URL
+https://github.com/sonujha78/error-budget-guard
+
+SKILLS (add up to 5 as the main skills, rest as extra)
+Site Reliability Engineering (SRE)
+Go (Programming Language)
+Observability
+Prometheus
+GitHub Actions
+Docker Compose
+CI/CD
+DevOps
+
+MEDIA
+linkedin/summary-image.png
